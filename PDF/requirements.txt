@@ -1,0 +1,5 @@
+pypdf>=4.0.0
+tkinterdnd2>=0.4.0
+
+# 빌드 시에만 (exe 만들 때)
+# pyinstaller>=6.0.0

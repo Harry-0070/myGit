@@ -1,0 +1,20 @@
+========================================
+ PDF 텍스트 추출 - exe 빌드 방법
+========================================
+
+1) 이 폴더에서 build.bat 더블클릭
+   → dist 폴더에 "PDF텍스트추출.exe" 생성
+
+2) 또는 명령 프롬프트에서:
+   cd "c:\Users\hmin1\OneDrive\바탕 화면\myGit\PDF"
+   pip install pyinstaller pypdf tkinterdnd2
+   pyinstaller --noconfirm pdf_extract_gui.spec
+
+3) 완료 후
+   dist\PDF텍스트추출.exe 를 더블클릭하면 실행됩니다.
+   이 exe 파일만 다른 PC에 복사해도 Python 없이 실행 가능합니다.
+
+추가된 파일:
+  - pdf_extract_gui.spec  : PyInstaller 설정
+  - hook-tkinterdnd2.py    : 드래그앤드롭 라이브러리 훅 (참고용)
+  - build.bat             : 한 번에 빌드하는 배치 파일
