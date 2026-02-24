@@ -6,6 +6,7 @@ PDF 텍스트 추출 GUI
 
 import sys
 from pathlib import Path
+from typing import Optional
 
 # 드래그앤드롭 지원 시도 (실패하면 클릭으로만 파일 선택)
 try:
@@ -109,7 +110,30 @@ class PdfExtractApp:
         self.root.minsize(420, 320)
 
         self.input_path: str = ""
+        self.save_dir: Optional[str] = None  # 저장 기본 폴더 (None이면 PDF와 같은 폴더)
+        self._build_menu()
         self._build_ui()
+
+    def _build_menu(self):
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        menu_set = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="설정", menu=menu_set)
+        menu_set.add_command(label="저장 폴더 선택...", command=self._on_choose_save_dir)
+        menu_set.add_command(label="저장 위치 초기화 (PDF와 같은 폴더)", command=self._on_reset_save_dir)
+        menu_set.add_separator()
+        menu_set.add_command(label="종료", command=self.root.quit)
+
+    def _on_choose_save_dir(self):
+        folder = filedialog.askdirectory(title="저장할 기본 폴더 선택")
+        if folder:
+            self.save_dir = folder
+            self.status_var.set(f"저장 위치: {folder}")
+            messagebox.showinfo("저장 위치", f"기본 저장 폴더가 설정되었습니다.\n{folder}")
+
+    def _on_reset_save_dir(self):
+        self.save_dir = None
+        self.status_var.set("저장 위치: PDF 파일과 같은 폴더")
 
     def _build_ui(self):
         pad = {"padx": 12, "pady": 6}
@@ -261,14 +285,14 @@ class PdfExtractApp:
             messagebox.showwarning("알림", "페이지 범위를 입력하세요. (예: 1-5, 1,3,5)")
             return
 
-        # 저장 경로: 원본과 같은 폴더, 이름_추출.txt
         inp = Path(self.input_path)
-        out_path = inp.parent / f"{inp.stem}_추출.txt"
+        initial_dir = self.save_dir if self.save_dir else str(inp.parent)
+        out_path = Path(initial_dir) / f"{inp.stem}_추출.txt"
 
         save_path = filedialog.asksaveasfilename(
             title="저장할 TXT 파일 경로",
             initialfile=out_path.name,
-            initialdir=str(out_path.parent),
+            initialdir=initial_dir,
             defaultextension=".txt",
             filetypes=[("텍스트 파일", "*.txt"), ("모든 파일", "*.*")],
         )
