@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>이머니 거래 시스템</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+nav button { margin-right: 10px; }
+section { display: none; margin-top: 20px; }
+section.active { display: block; }
+label { display: block; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>이머니 거래 시스템</h1>
+<nav>
+<button onclick="showSection('contract')">계약서 작성</button>
+<button onclick="showSection('process')">거래 프로세스</button>
+<button onclick="showSection('history')">거래 조회</button>
+</nav>
+
+<section id="contract" class="active">
+<h2>계약서 작성</h2>
+<form id="contractForm">
+<label>매수자 이름:<input type="text" id="buyer" required></label>
+<label>매도자 이름:<input type="text" id="seller" required></label>
+<label>계약 내용:<textarea id="details" required></textarea></label>
+<button type="submit">계약 저장</button>
+</form>
+</section>
+
+<section id="process">
+<h2>거래 프로세스</h2>
+<ol id="processList">
+<li>계약 작성</li>
+<li>결제 진행</li>
+<li>상품 인도</li>
+<li>거래 완료</li>
+</ol>
+<button onclick="nextStep()">다음 단계</button>
+</section>
+
+<section id="history">
+<h2>거래 조회</h2>
+<table border="1" id="historyTable">
+<thead>
+<tr><th>매수자</th><th>매도자</th><th>내용</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+</section>
+
+<script>
+function showSection(id) {
+  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+const steps = document.querySelectorAll('#processList li');
+let currentStep = 0;
+function nextStep() {
+  if (currentStep < steps.length) {
+    steps[currentStep].style.textDecoration = 'line-through';
+    currentStep++;
+  }
+}
+
+document.getElementById('contractForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const buyer = document.getElementById('buyer').value;
+  const seller = document.getElementById('seller').value;
+  const details = document.getElementById('details').value;
+  addHistoryRow(buyer, seller, details);
+  alert('계약이 저장되었습니다.');
+  this.reset();
+});
+
+function addHistoryRow(buyer, seller, details) {
+  const tbody = document.querySelector('#historyTable tbody');
+  const row = document.createElement('tr');
+  row.innerHTML = `<td>${buyer}</td><td>${seller}</td><td>${details}</td>`;
+  tbody.appendChild(row);
+}
+</script>
+</body>
+</html>
