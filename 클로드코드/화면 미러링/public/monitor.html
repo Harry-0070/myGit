@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모니터 - 민정후 PC 화면</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Malgun Gothic', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 헤더 */
+  .header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .header h1 { font-size: 1.1rem; font-weight: bold; color: #58a6ff; }
+  .status-badges { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: bold;
+    background: #21262d;
+    border: 1px solid #30363d;
+  }
+  .badge .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #6e7681;
+  }
+  .badge.online .dot { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+  .badge.streaming .dot { background: #58a6ff; box-shadow: 0 0 6px #58a6ff; animation: pulse 1.5s infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* 메인 레이아웃 */
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* 영상 영역 */
+  .video-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #010409;
+    position: relative;
+    min-height: 0;
+  }
+  .video-toolbar {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.8rem;
+  }
+  #videoContainer {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  #remoteVideo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: none;
+    border: none;
+    outline: none;
+  }
+  #screenshotImg {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: none;
+  }
+  .no-signal {
+    text-align: center;
+    color: #484f58;
+  }
+  .no-signal .icon { font-size: 4rem; margin-bottom: 12px; }
+  .no-signal p { font-size: 1rem; margin-bottom: 6px; }
+  .no-signal small { font-size: 0.8rem; }
+
+  .btn {
+    padding: 6px 14px;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    background: #21262d;
+    color: #e6edf3;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: #30363d; }
+  .btn.active { background: #1f6feb; border-color: #58a6ff; color: white; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* 사이드패널 */
+  .sidebar {
+    width: 300px;
+    background: #161b22;
+    border-left: 1px solid #30363d;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-section {
+    border-bottom: 1px solid #30363d;
+    padding: 14px 16px;
+  }
+  .sidebar-section h3 {
+    font-size: 0.8rem;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 0.82rem;
+    border-bottom: 1px solid #21262d;
+  }
+  .info-row:last-child { border: none; }
+  .info-row .key { color: #8b949e; }
+  .info-row .val { font-weight: 500; text-align: right; word-break: break-all; max-width: 160px; }
+  .info-row .val.green { color: #3fb950; }
+  .info-row .val.red { color: #f85149; }
+  .info-row .val.blue { color: #58a6ff; }
+
+  /* 활동 로그 */
+  .activity-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+  .log-entry {
+    padding: 10px 16px;
+    border-bottom: 1px solid #21262d;
+    font-size: 0.78rem;
+  }
+  .log-entry:hover { background: #1c2128; }
+  .log-time { color: #8b949e; font-size: 0.72rem; margin-bottom: 2px; }
+  .log-msg { color: #e6edf3; line-height: 1.4; word-break: break-all; }
+  .log-msg.ok { color: #3fb950; }
+  .log-msg.warn { color: #d29922; }
+  .log-msg.err { color: #f85149; }
+  .log-msg.info { color: #58a6ff; }
+
+  /* 연결 오버레이 */
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(1,4,9,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    flex-direction: column;
+    gap: 16px;
+    display: none;
+  }
+  #overlay.show { display: flex; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #30363d;
+    border-top-color: #58a6ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 전체화면 버튼 */
+  #btnFullscreen {
+    margin-left: auto;
+  }
+
+  @media (max-width: 768px) {
+    .main { flex-direction: column; }
+    .sidebar { width: 100%; border-left: none; border-top: 1px solid #30363d; height: 280px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🖥️ 민정후 PC 모니터링</h1>
+  <div class="status-badges">
+    <div class="badge" id="badgeServer">
+      <div class="dot"></div>
+      <span>서버</span>
+    </div>
+    <div class="badge" id="badgeAgent">
+      <div class="dot"></div>
+      <span>자녀 PC</span>
+    </div>
+    <div class="badge" id="badgeStream">
+      <div class="dot"></div>
+      <span>스트리밍</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- 영상 영역 -->
+  <div class="video-area">
+    <div class="video-toolbar">
+      <button class="btn active" id="btnLive" onclick="requestStream()">▶ 실시간 보기</button>
+      <button class="btn" id="btnStop" onclick="stopStream()">⏹ 중지</button>
+      <span id="modeLabel" style="color:#8b949e; margin-left:4px;"></span>
+      <button class="btn" id="btnFullscreen" onclick="toggleFullscreen()">⛶ 전체화면</button>
+    </div>
+
+    <div id="videoContainer">
+      <div class="no-signal" id="noSignal">
+        <div class="icon">📺</div>
+        <p>화면 신호 없음</p>
+        <small>자녀 PC에서 에이전트를 실행하고 화면 공유를 시작해주세요.</small>
+      </div>
+      <video id="remoteVideo" autoplay playsinline></video>
+      <img id="screenshotImg" alt="스크린샷">
+      <div id="overlay">
+        <div class="spinner"></div>
+        <span style="color:#8b949e; font-size:0.9rem;">연결 중...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사이드패널 -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>📊 연결 정보</h3>
+      <div class="info-row"><span class="key">PC 이름</span><span class="val" id="infoName">-</span></div>
+      <div class="info-row"><span class="key">상태</span><span class="val" id="infoStatus">오프라인</span></div>
+      <div class="info-row"><span class="key">해상도</span><span class="val" id="infoRes">-</span></div>
+      <div class="info-row"><span class="key">접속 시간</span><span class="val" id="infoConnAt">-</span></div>
+      <div class="info-row"><span class="key">마지막 확인</span><span class="val" id="infoLastSeen">-</span></div>
+    </div>
+
+    <div class="sidebar-section" style="padding-bottom:8px;">
+      <h3>📋 활동 로그</h3>
+    </div>
+    <div class="activity-log" id="activityLog"></div>
+  </div>
+
+</div>
+
+<script>
+const SERVER_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
+
+let ws = null;
+let peerConnection = null;
+let agentOnline = false;
+let streaming = false;
+
+const iceConfig = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ]
+};
+
+// ── DOM refs ──
+const remoteVideo = document.getElementById('remoteVideo');
+const screenshotImg = document.getElementById('screenshotImg');
+const noSignal = document.getElementById('noSignal');
+const overlay = document.getElementById('overlay');
+
+// ── 로그 추가 ──
+function addLog(msg, type = '') {
+  const log = document.getElementById('activityLog');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `
+    <div class="log-time">${new Date().toLocaleString('ko-KR')}</div>
+    <div class="log-msg ${type}">${msg}</div>
+  `;
+  log.insertBefore(entry, log.firstChild);
+  if (log.children.length > 100) log.removeChild(log.lastChild);
+}
+
+// ── 배지 상태 ──
+function setBadge(id, online) {
+  const el = document.getElementById(id);
+  el.className = 'badge' + (online ? ' online' : '');
+}
+function setStreamBadge(on) {
+  const el = document.getElementById('badgeStream');
+  el.className = 'badge' + (on ? ' streaming' : '');
+}
+
+// ── 에이전트 정보 업데이트 ──
+function updateAgentInfo(data) {
+  agentOnline = data.connected;
+  setBadge('badgeAgent', data.connected);
+  document.getElementById('infoName').textContent = data.pcName || '-';
+  document.getElementById('infoStatus').textContent = data.connected ? '온라인' : '오프라인';
+  document.getElementById('infoStatus').className = 'val ' + (data.connected ? 'green' : 'red');
+  if (data.screenWidth) {
+    document.getElementById('infoRes').textContent = `${data.screenWidth} × ${data.screenHeight}`;
+  }
+  if (data.connectedAt) {
+    document.getElementById('infoConnAt').textContent = new Date(data.connectedAt).toLocaleString('ko-KR');
+  }
+  if (data.lastSeen) {
+    document.getElementById('infoLastSeen').textContent = new Date(data.lastSeen).toLocaleString('ko-KR');
+  }
+
+  if (!data.connected) {
+    showNoSignal();
+    addLog('자녀 PC 연결 끊김', 'warn');
+  }
+}
+
+function showNoSignal() {
+  noSignal.style.display = 'block';
+  remoteVideo.style.display = 'none';
+  screenshotImg.style.display = 'none';
+  streaming = false;
+  setStreamBadge(false);
+  document.getElementById('modeLabel').textContent = '';
+}
+
+// ── WebSocket ──
+function connectWS() {
+  ws = new WebSocket(SERVER_URL);
+
+  ws.onopen = () => {
+    setBadge('badgeServer', true);
+    addLog('서버 연결됨', 'ok');
+    ws.send(JSON.stringify({ type: 'monitor-register' }));
+  };
+
+  ws.onmessage = async (evt) => {
+    const data = JSON.parse(evt.data);
+
+    switch (data.type) {
+
+      case 'agent-status':
+        updateAgentInfo(data);
+        if (data.connected) addLog(`자녀 PC 온라인: ${data.pcName}`, 'ok');
+        break;
+
+      case 'screenshot':
+        // WebRTC가 안 될 때 스크린샷으로 표시
+        if (!streaming || remoteVideo.style.display === 'none') {
+          screenshotImg.src = data.image;
+          screenshotImg.style.display = 'block';
+          noSignal.style.display = 'none';
+          document.getElementById('modeLabel').textContent = '📷 스크린샷 모드';
+        }
+        document.getElementById('infoLastSeen').textContent =
+          new Date(data.timestamp).toLocaleString('ko-KR');
+        break;
+
+      case 'activity':
+        addLog(`🌐 ${data.title || data.activeUrl}`, 'info');
+        break;
+
+      case 'offer':
+        await handleOffer(data.sdp);
+        break;
+
+      case 'ice-candidate-agent':
+        if (peerConnection && data.candidate) {
+          await peerConnection.addIceCandidate(data.candidate);
+        }
+        break;
+    }
+  };
+
+  ws.onclose = () => {
+    setBadge('badgeServer', false);
+    addLog('서버 연결 끊김. 재연결 중...', 'err');
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror = () => {
+    addLog('WebSocket 오류', 'err');
+  };
+}
+
+// ── 스트리밍 요청 ──
+function requestStream() {
+  if (!agentOnline) {
+    addLog('자녀 PC가 오프라인 상태입니다.', 'warn');
+    return;
+  }
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'request-stream' }));
+    addLog('화면 스트리밍 요청 전송', 'info');
+    overlay.classList.add('show');
+    setTimeout(() => overlay.classList.remove('show'), 8000);
+  }
+}
+
+function stopStream() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'stop-stream' }));
+  }
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+  showNoSignal();
+  addLog('스트리밍 중지됨', 'warn');
+}
+
+// ── WebRTC: Offer 처리 ──
+async function handleOffer(sdp) {
+  overlay.classList.add('show');
+
+  if (peerConnection) { peerConnection.close(); }
+  peerConnection = new RTCPeerConnection(iceConfig);
+
+  peerConnection.ontrack = (evt) => {
+    overlay.classList.remove('show');
+    remoteVideo.srcObject = evt.streams[0];
+    remoteVideo.style.display = 'block';
+    screenshotImg.style.display = 'none';
+    noSignal.style.display = 'none';
+    streaming = true;
+    setStreamBadge(true);
+    document.getElementById('modeLabel').textContent = '🔴 실시간 스트리밍';
+    addLog('실시간 화면 수신 시작', 'ok');
+  };
+
+  peerConnection.onicecandidate = (e) => {
+    if (e.candidate && ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'ice-candidate-monitor', candidate: e.candidate }));
+    }
+  };
+
+  peerConnection.onconnectionstatechange = () => {
+    const state = peerConnection.connectionState;
+    addLog(`WebRTC 상태: ${state}`);
+    if (state === 'failed' || state === 'disconnected') {
+      showNoSignal();
+      overlay.classList.remove('show');
+    }
+  };
+
+  await peerConnection.setRemoteDescription({ type: 'offer', sdp });
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+
+  ws.send(JSON.stringify({ type: 'answer', sdp: answer.sdp }));
+}
+
+// ── 전체화면 ──
+function toggleFullscreen() {
+  const container = document.getElementById('videoContainer');
+  if (!document.fullscreenElement) {
+    container.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+// ── 마지막 확인 시간 자동 갱신 ──
+setInterval(() => {
+  const el = document.getElementById('infoLastSeen');
+  // 표시 유지 (갱신은 heartbeat에서)
+}, 1000);
+
+// ── 시작 ──
+connectWS();
+</script>
+</body>
+</html>

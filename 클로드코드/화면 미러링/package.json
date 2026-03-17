@@ -1,0 +1,15 @@
+{
+  "name": "screen-monitor",
+  "version": "1.0.0",
+  "description": "자녀 PC 화면 모니터링 시스템",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "selfsigned": "^5.5.0",
+    "uuid": "^9.0.0",
+    "ws": "^8.14.2"
+  }
+}
