@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>텍스트 → 손글씨 변환기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Dancing+Script:wght@400;600&family=Architects+Daughter&family=Permanent+Marker&family=Patrick+Hand&family=Shadows+Into+Light&family=Klee+One&family=Nanum+Pen+Script&family=Nanum+Brush+Script&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f3ef;
+      --panel: #ffffff;
+      --border: #e2ddd6;
+      --accent: #4a6fa5;
+      --accent2: #7c5cbf;
+      --text: #2d2d2d;
+      --muted: #888;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #4a6fa5 0%, #7c5cbf 100%);
+      color: #fff;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 12px rgba(74,111,165,0.3);
+    }
+    header .logo { font-size: 28px; }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.3px; }
+    header p  { font-size: 0.82rem; opacity: 0.85; margin-top: 2px; }
+
+    /* ── Layout ── */
+    .container {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Textarea ── */
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fafaf8;
+      color: var(--text);
+    }
+    textarea:focus { border-color: var(--accent); background: #fff; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* ── Card grids ── */
+    .card-grid { display: grid; gap: 8px; }
+    .card-grid.col2 { grid-template-columns: repeat(2, 1fr); }
+    .card-grid.col3 { grid-template-columns: repeat(3, 1fr); }
+    .card-grid.col4 { grid-template-columns: repeat(4, 1fr); }
+
+    .option-card {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.18s;
+      user-select: none;
+      font-size: 0.8rem;
+      background: #fafaf8;
+    }
+    .option-card:hover { border-color: var(--accent); background: #f0f4fb; }
+    .option-card.active {
+      border-color: var(--accent);
+      background: #eef2fb;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .option-card .card-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+    .option-card .card-preview {
+      font-size: 1.1rem;
+      display: block;
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    /* ── Color swatches ── */
+    .color-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+    .color-swatch {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2.5px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+      position: relative;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(74,111,165,0.25);
+    }
+
+    /* ── Slider ── */
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-row input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      outline: none;
+    }
+    .slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+    .slider-val {
+      min-width: 36px;
+      text-align: right;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    /* ── Generate button ── */
+    .btn-generate {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4a6fa5, #7c5cbf);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 14px rgba(74,111,165,0.35);
+    }
+    .btn-generate:hover { opacity: 0.92; }
+    .btn-generate:active { transform: scale(0.98); }
+
+    /* ── Right: Preview ── */
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .preview-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn-action {
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      font-size: 0.86rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.18s;
+    }
+    .btn-action:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-action.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-action.primary:hover { background: #3a5f95; }
+
+    /* ── Canvas wrapper ── */
+    .canvas-wrapper {
+      flex: 1;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background: #e8e5de;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 500px;
+      position: relative;
+    }
+    #outputCanvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 4px;
+    }
+    .placeholder-msg {
+      text-align: center;
+      color: var(--muted);
+      pointer-events: none;
+    }
+    .placeholder-msg .big { font-size: 3rem; }
+    .placeholder-msg p { font-size: 0.9rem; margin-top: 8px; }
+
+    /* ── Aspect ratio row ── */
+    .ratio-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ratio-btn {
+      padding: 6px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      background: #fafaf8;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.18s;
+    }
+    .ratio-btn.active { border-color: var(--accent); background: #eef2fb; color: var(--accent); font-weight: 600; }
+
+    /* ── Loading overlay ── */
+    #loadingOverlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(3px);
+      border-radius: var(--radius);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    #loadingOverlay.show { display: flex; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #ddd;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">✍️</div>
+  <div>
+    <h1>텍스트 → 손글씨 변환기</h1>
+    <p>타이핑한 텍스트를 손으로 쓴 것처럼 변환해보세요</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="panel">
+    <div class="panel-header">⚙️ 설정</div>
+    <div class="panel-body">
+
+      <!-- Text Input -->
+      <div>
+        <div class="section-label">텍스트 입력</div>
+        <textarea id="inputText" placeholder="여기에 텍스트를 입력하세요…
+예) 오늘 하루도 수고했어요. 맛있는 거 먹어요! 😊"></textarea>
+      </div>
+
+      <!-- Handwriting Style -->
+      <div>
+        <div class="section-label">손글씨 스타일</div>
+        <div class="card-grid col2" id="styleGrid">
+          <div class="option-card active" data-style="caveat">
+            <span class="card-preview" style="font-family:'Caveat'">가나다</span>
+            <span>자연스러운 필기</span>
+          </div>
+          <div class="option-card" data-style="dancing">
+            <span class="card-preview" style="font-family:'Dancing Script'">가나다</span>
+            <span>흘림체 / 커시브</span>
+          </div>
+          <div class="option-card" data-style="architects">
+            <span class="card-preview" style="font-family:'Architects Daughter'">ABC</span>
+            <span>블록 인쇄체</span>
+          </div>
+          <div class="option-card" data-style="marker">
+            <span class="card-preview" style="font-family:'Permanent Marker'">ABC</span>
+            <span>굵은 마커</span>
+          </div>
+          <div class="option-card" data-style="patrick">
+            <span class="card-preview" style="font-family:'Patrick Hand'">가나다</span>
+            <span>단정한 필기</span>
+          </div>
+          <div class="option-card" data-style="shadows">
+            <span class="card-preview" style="font-family:'Shadows Into Light'">가나다</span>
+            <span>감성 필기</span>
+          </div>
+          <div class="option-card" data-style="nanum-pen">
+            <span class="card-preview" style="font-family:'Nanum Pen Script'">가나다</span>
+            <span>나눔 펜</span>
+          </div>
+          <div class="option-card" data-style="nanum-brush">
+            <span class="card-preview" style="font-family:'Nanum Brush Script'">가나다</span>
+            <span>나눔 붓글씨</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paper Type -->
+      <div>
+        <div class="section-label">종이 종류</div>
+        <div class="card-grid col3" id="paperGrid">
+          <div class="option-card active" data-paper="white">
+            <span class="card-icon">📄</span>
+            <span>흰 종이</span>
+          </div>
+          <div class="option-card" data-paper="lined">
+            <span class="card-icon">📋</span>
+            <span>줄노트</span>
+          </div>
+          <div class="option-card" data-paper="grid">
+            <span class="card-icon">📐</span>
+            <span>모눈종이</span>
+          </div>
+          <div class="option-card" data-paper="parchment">
+            <span class="card-icon">📜</span>
+            <span>양피지</span>
+          </div>
+          <div class="option-card" data-paper="legal">
+            <span class="card-icon">🗒️</span>
+            <span>법률 용지</span>
+          </div>
+          <div class="option-card" data-paper="postit">
+            <span class="card-icon">🟡</span>
+            <span>포스트잇</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ink Color -->
+      <div>
+        <div class="section-label">잉크 색상</div>
+        <div class="color-grid" id="colorGrid">
+          <div class="color-swatch active" data-color="#1a1a1a" style="background:#1a1a1a" title="검정 잉크"></div>
+          <div class="color-swatch" data-color="#1a3a7a" style="background:#1a3a7a" title="파란 잉크"></div>
+          <div class="color-swatch" data-color="#888888" style="background:#888888" title="연필"></div>
+          <div class="color-swatch" data-color="#b91c1c" style="background:#b91c1c" title="빨간 펜"></div>
+          <div class="color-swatch" data-color="#166534" style="background:#166534" title="초록 잉크"></div>
+          <div class="color-swatch" data-color="#6d28d9" style="background:#6d28d9" title="보라 젤펜"></div>
+          <div class="color-swatch" data-color="#92400e" style="background:#92400e" title="갈색 잉크"></div>
+          <div class="color-swatch" data-color="#0e7490" style="background:#0e7490" title="청록 잉크"></div>
+        </div>
+      </div>
+
+      <!-- Font Size -->
+      <div>
+        <div class="section-label">글자 크기</div>
+        <div class="slider-row">
+          <span style="font-size:0.8rem">작게</span>
+          <input type="range" id="fontSize" min="18" max="60" value="32" />
+          <span style="font-size:0.8rem">크게</span>
+          <span class="slider-val" id="fontSizeVal">32px</span>
+        </div>
+      </div>
+
+      <!-- Line Height -->
+      <div>
+        <div class="section-label">줄 간격</div>
+        <div class="slider-row">
+          <span style="font-size:0.8rem">좁게</span>
+          <input type="range" id="lineHeight" min="1.0" max="2.5" step="0.1" value="1.7" />
+          <span style="font-size:0.8rem">넓게</span>
+          <span class="slider-val" id="lineHeightVal">1.7</span>
+        </div>
+      </div>
+
+      <!-- Aspect Ratio -->
+      <div>
+        <div class="section-label">비율</div>
+        <div class="ratio-row" id="ratioRow">
+          <div class="ratio-btn active" data-ratio="1:1">정사각형 1:1</div>
+          <div class="ratio-btn" data-ratio="4:3">세로 4:3</div>
+          <div class="ratio-btn" data-ratio="3:4">가로 3:4</div>
+          <div class="ratio-btn" data-ratio="letter">편지 A4</div>
+        </div>
+      </div>
+
+      <!-- Generate -->
+      <button class="btn-generate" id="btnGenerate">✍️ 손글씨로 변환하기</button>
+
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="preview-panel">
+    <div class="panel" style="padding:16px 20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <span style="font-weight:600; font-size:0.95rem;">👁️ 미리보기</span>
+        <div class="preview-actions">
+          <button class="btn-action" id="btnCopy">📋 복사</button>
+          <button class="btn-action primary" id="btnDownload">⬇️ PNG 다운로드</button>
+        </div>
+      </div>
+    </div>
+    <div class="canvas-wrapper" id="canvasWrapper">
+      <div class="placeholder-msg" id="placeholder">
+        <div class="big">✍️</div>
+        <p>왼쪽에서 텍스트를 입력하고<br/><strong>변환하기</strong> 버튼을 눌러보세요</p>
+      </div>
+      <canvas id="outputCanvas" style="display:none;"></canvas>
+      <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <span>손글씨 생성 중…</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──
+const state = {
+  style: 'caveat',
+  paper: 'white',
+  color: '#1a1a1a',
+  fontSize: 32,
+  lineHeight: 1.7,
+  ratio: '1:1',
+};
+
+const fontMap = {
+  caveat: "'Caveat', cursive",
+  dancing: "'Dancing Script', cursive",
+  architects: "'Architects Daughter', cursive",
+  marker: "'Permanent Marker', cursive",
+  patrick: "'Patrick Hand', cursive",
+  shadows: "'Shadows Into Light', cursive",
+  'nanum-pen': "'Nanum Pen Script', cursive",
+  'nanum-brush': "'Nanum Brush Script', cursive",
+};
+
+const paperConfig = {
+  white:     { bg: '#fdfcfa', lines: false, grid: false, tint: null },
+  lined:     { bg: '#fdfcfa', lines: true,  grid: false, tint: null },
+  grid:      { bg: '#f8faff', lines: false, grid: true,  tint: null },
+  parchment: { bg: '#f5e6c8', lines: false, grid: false, tint: '#d4a96a' },
+  legal:     { bg: '#fefce8', lines: true,  grid: false, tint: '#d4b800', lineColor: '#ccc06a' },
+  postit:    { bg: '#fef08a', lines: false, grid: false, tint: '#eab308' },
+};
+
+const ratioMap = {
+  '1:1':   [800, 800],
+  '4:3':   [800, 1067],
+  '3:4':   [1067, 800],
+  'letter':[800, 1035],
+};
+
+// ── Option card clicks ──
+function bindCards(gridId, stateKey) {
+  document.getElementById(gridId).addEventListener('click', e => {
+    const card = e.target.closest('.option-card');
+    if (!card) return;
+    document.querySelectorAll(`#${gridId} .option-card`).forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    state[stateKey] = card.dataset[stateKey] || card.dataset.style || card.dataset.paper;
+  });
+}
+bindCards('styleGrid', 'style');
+bindCards('paperGrid', 'paper');
+
+// Fix: paperGrid uses data-paper, styleGrid uses data-style
+document.getElementById('styleGrid').addEventListener('click', e => {
+  const card = e.target.closest('.option-card');
+  if (card) state.style = card.dataset.style;
+});
+document.getElementById('paperGrid').addEventListener('click', e => {
+  const card = e.target.closest('.option-card');
+  if (card) state.paper = card.dataset.paper;
+});
+
+// ── Color swatches ──
+document.getElementById('colorGrid').addEventListener('click', e => {
+  const sw = e.target.closest('.color-swatch');
+  if (!sw) return;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  sw.classList.add('active');
+  state.color = sw.dataset.color;
+});
+
+// ── Sliders ──
+const fsInput = document.getElementById('fontSize');
+const lhInput = document.getElementById('lineHeight');
+fsInput.addEventListener('input', () => {
+  state.fontSize = +fsInput.value;
+  document.getElementById('fontSizeVal').textContent = fsInput.value + 'px';
+});
+lhInput.addEventListener('input', () => {
+  state.lineHeight = +lhInput.value;
+  document.getElementById('lineHeightVal').textContent = parseFloat(lhInput.value).toFixed(1);
+});
+
+// ── Ratio ──
+document.getElementById('ratioRow').addEventListener('click', e => {
+  const btn = e.target.closest('.ratio-btn');
+  if (!btn) return;
+  document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.ratio = btn.dataset.ratio;
+});
+
+// ── Draw helpers ──
+function drawPaper(ctx, w, h, cfg) {
+  // Base fill
+  ctx.fillStyle = cfg.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Parchment / postit texture noise
+  if (cfg.tint) {
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, cfg.bg + 'ee');
+    grad.addColorStop(0.5, cfg.tint + '18');
+    grad.addColorStop(1, cfg.bg + 'dd');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  const lineColor = cfg.lineColor || '#c8d8f0';
+  const lineSpacing = Math.round(state.fontSize * state.lineHeight);
+  const pad = 70;
+
+  if (cfg.lines) {
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 1;
+    for (let y = pad + lineSpacing; y < h - pad; y += lineSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(pad, y);
+      ctx.lineTo(w - pad, y);
+      ctx.stroke();
+    }
+    // Red margin line
+    if (state.paper === 'legal') {
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(pad + 60, 0);
+      ctx.lineTo(pad + 60, h);
+      ctx.stroke();
+    }
+  }
+
+  if (cfg.grid) {
+    ctx.strokeStyle = '#a5b4d480';
+    ctx.lineWidth = 0.8;
+    for (let x = pad; x < w - pad; x += 30) {
+      ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.stroke();
+    }
+    for (let y = pad; y < h - pad; y += 30) {
+      ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+    }
+  }
+}
+
+function wrapText(ctx, text, maxWidth) {
+  const paragraphs = text.split('\n');
+  const lines = [];
+  for (const para of paragraphs) {
+    if (para.trim() === '') { lines.push(''); continue; }
+    const words = para.split(' ');
+    let cur = '';
+    for (const word of words) {
+      const test = cur ? cur + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && cur) {
+        lines.push(cur);
+        cur = word;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) lines.push(cur);
+  }
+  return lines;
+}
+
+// Tiny jitter for natural feel
+function jitter(v, amount) {
+  return v + (Math.random() - 0.5) * amount;
+}
+
+// ── Main render ──
+function renderCanvas() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) { alert('텍스트를 입력해주세요!'); return; }
+
+  const [cw, ch] = ratioMap[state.ratio];
+  const canvas = document.getElementById('outputCanvas');
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext('2d');
+
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.add('show');
+
+  // Use rAF to let browser paint loading first
+  requestAnimationFrame(() => setTimeout(() => {
+    const cfg = paperConfig[state.paper];
+    drawPaper(ctx, cw, ch, cfg);
+
+    const pad = 70;
+    const marginLeft = (state.paper === 'legal') ? pad + 70 : pad;
+    const maxWidth = cw - marginLeft - pad;
+
+    ctx.font = `${state.fontSize}px ${fontMap[state.style]}`;
+    ctx.fillStyle = state.color;
+    ctx.textBaseline = 'alphabetic';
+
+    const lineSpacing = Math.round(state.fontSize * state.lineHeight);
+    const lines = wrapText(ctx, text, maxWidth);
+    const totalH = lines.length * lineSpacing;
+    let y = Math.max(pad + state.fontSize, (ch - totalH) / 2 + state.fontSize);
+
+    for (const line of lines) {
+      if (line === '') { y += lineSpacing; continue; }
+      // Char-by-char with micro jitter for natural feel
+      let x = marginLeft;
+      for (const char of line) {
+        ctx.save();
+        const rot = (Math.random() - 0.5) * 0.04;
+        ctx.translate(x, jitter(y, 1.5));
+        ctx.rotate(rot);
+        ctx.fillText(char, 0, 0);
+        ctx.restore();
+        x += ctx.measureText(char).width + jitter(0, 0.4);
+      }
+      y += lineSpacing;
+      if (y > ch - pad) break;
+    }
+
+    canvas.style.display = 'block';
+    document.getElementById('placeholder').style.display = 'none';
+    overlay.classList.remove('show');
+  }, 60));
+}
+
+document.getElementById('btnGenerate').addEventListener('click', renderCanvas);
+
+// ── Download ──
+document.getElementById('btnDownload').addEventListener('click', () => {
+  const canvas = document.getElementById('outputCanvas');
+  if (canvas.style.display === 'none') { alert('먼저 손글씨를 생성해주세요!'); return; }
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'handwriting.png';
+  a.click();
+});
+
+// ── Copy ──
+document.getElementById('btnCopy').addEventListener('click', async () => {
+  const canvas = document.getElementById('outputCanvas');
+  if (canvas.style.display === 'none') { alert('먼저 손글씨를 생성해주세요!'); return; }
+  try {
+    canvas.toBlob(async blob => {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      alert('클립보드에 복사됐어요!');
+    });
+  } catch { alert('브라우저에서 복사를 지원하지 않습니다. 다운로드를 이용해주세요.'); }
+});
+</script>
+</body>
+</html>

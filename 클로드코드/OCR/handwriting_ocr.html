@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>손글씨 → 텍스트 변환기</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0f0f1a;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: #e0e0ff;
+      padding: 24px;
+    }
+
+    /* ── header ── */
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge {
+      font-size: .72rem;
+      background: #1e3a2f;
+      color: #4ade80;
+      border: 1px solid #2d5a42;
+      border-radius: 99px;
+      padding: 3px 14px;
+      letter-spacing: .06em;
+    }
+
+    /* ── layout ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── card ── */
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 16px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+
+    .card-title {
+      font-size: .78rem;
+      color: #9090b0;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-weight: 600;
+    }
+
+    /* ── toolbar ── */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .tool-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tool-btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #3a3a6a;
+      background: #2a2a4a;
+      color: #c0c0e0;
+      transition: background .15s, border-color .15s;
+    }
+    .tool-btn:hover { background: #3a3a6a; }
+    .tool-btn.active {
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      color: #0f0f1a;
+      border-color: transparent;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .8rem;
+      color: #9090b0;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 90px; height: 4px;
+      border-radius: 2px;
+      background: #3a3a6a;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: #a78bfa;
+      cursor: pointer;
+    }
+
+    input[type=color] {
+      -webkit-appearance: none;
+      width: 30px; height: 30px;
+      border: 2px solid #3a3a6a;
+      border-radius: 6px;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+    }
+    input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+    input[type=color]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+    select {
+      background: #2a2a4a;
+      color: #c0c0e0;
+      border: 1px solid #3a3a6a;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: .82rem;
+      cursor: pointer;
+      outline: none;
+    }
+    select:focus { border-color: #a78bfa; }
+
+    /* ── canvas ── */
+    .canvas-wrap {
+      position: relative;
+      line-height: 0;
+    }
+
+    #drawCanvas {
+      max-width: 100%;
+      border: 2px solid #3a3a6a;
+      border-radius: 12px;
+      cursor: crosshair;
+      background: #fff;
+      touch-action: none;
+      display: block;
+    }
+
+    /* ── action row ── */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 8px;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .1s, opacity .15s;
+    }
+    button:active { transform: scale(.96); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      color: #0f0f1a;
+      flex: 1;
+    }
+    .btn-primary:hover:not(:disabled) { opacity: .88; }
+
+    .btn-secondary {
+      background: #2a2a4a;
+      color: #c0c0e0;
+      border: 1px solid #3a3a6a;
+    }
+    .btn-secondary:hover:not(:disabled) { background: #3a3a6a; }
+
+    /* ── result card ── */
+    .result-card {
+      min-height: 340px;
+    }
+
+    /* progress */
+    .progress-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .progress-wrap.visible { display: flex; }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: #2a2a4a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa);
+      border-radius: 3px;
+      transition: width .2s ease;
+    }
+    .progress-text {
+      font-size: .75rem;
+      color: #6060a0;
+      letter-spacing: .04em;
+    }
+
+    /* textarea */
+    #resultText {
+      width: 100%;
+      flex: 1;
+      min-height: 200px;
+      resize: vertical;
+      background: #12122a;
+      border: 1px solid #2a2a4a;
+      border-radius: 10px;
+      padding: 14px;
+      color: #e0e0ff;
+      font-size: 1rem;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.6;
+      outline: none;
+      transition: border-color .15s;
+    }
+    #resultText:focus { border-color: #a78bfa; }
+    #resultText::placeholder { color: #4040a0; }
+
+    /* confidence + copy row */
+    .result-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .confidence-badge {
+      font-size: .75rem;
+      padding: 4px 12px;
+      border-radius: 99px;
+      background: #1e3a2f;
+      color: #4ade80;
+      border: 1px solid #2d5a42;
+      display: none;
+    }
+    .confidence-badge.bad {
+      background: #3a1e1e;
+      color: #f87171;
+      border-color: #5a2d2d;
+    }
+    .confidence-badge.mid {
+      background: #2e2a1e;
+      color: #facc15;
+      border-color: #4a421e;
+    }
+    .confidence-badge.visible { display: inline-block; }
+
+    .shortcut-hint {
+      font-size: .72rem;
+      color: #5050a0;
+      text-align: center;
+    }
+
+    kbd {
+      background: #2a2a4a;
+      border: 1px solid #3a3a6a;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: .72rem;
+      font-family: inherit;
+      color: #a0a0c0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>✍ 손글씨 → 텍스트 변환기</h1>
+  <span class="badge">Tesseract.js · 클라이언트 전용</span>
+</header>
+
+<div class="main-grid">
+
+  <!-- ── 왼쪽: 캔버스 카드 ── -->
+  <div class="card">
+    <div class="card-title">캔버스</div>
+
+    <div class="toolbar">
+      <!-- 펜 / 지우개 -->
+      <div class="tool-group">
+        <button class="tool-btn active" id="penBtn" onclick="setTool('pen')">✏ 펜</button>
+        <button class="tool-btn" id="eraserBtn" onclick="setTool('eraser')">◻ 지우개</button>
+      </div>
+
+      <!-- 크기 슬라이더 -->
+      <div class="slider-row">
+        <span>크기</span>
+        <input type="range" id="sizeSlider" min="1" max="40" value="4"
+               oninput="penSize=+this.value; sizeVal.textContent=this.value">
+        <span id="sizeVal">4</span>
+      </div>
+
+      <!-- 색상 picker -->
+      <input type="color" id="colorPicker" value="#000000" title="펜 색상"
+             oninput="penColor=this.value">
+
+      <!-- 언어 선택 -->
+      <select id="langSelect" title="OCR 언어">
+        <option value="kor+eng">한글 + 영어</option>
+        <option value="kor">한글만</option>
+        <option value="eng">영어만</option>
+      </select>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="drawCanvas" width="700" height="400"></canvas>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-secondary" onclick="undo()">↩ 실행취소</button>
+      <button class="btn-secondary" onclick="clearCanvas()">🗑 전체지우기</button>
+      <button class="btn-primary" id="convertBtn" onclick="convertToText()">⚡ 변환하기</button>
+    </div>
+
+    <p class="shortcut-hint">
+      <kbd>Ctrl</kbd>+<kbd>Z</kbd> 실행취소 &nbsp;·&nbsp;
+      <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 변환
+    </p>
+  </div>
+
+  <!-- ── 오른쪽: 결과 카드 ── -->
+  <div class="card result-card">
+    <div class="card-title">인식 결과</div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">초기화 중…</div>
+    </div>
+
+    <textarea id="resultText" placeholder="손글씨를 쓴 뒤 '변환하기' 버튼을 눌러주세요.&#10;&#10;첫 실행 시 한글 언어 데이터(약 10 MB)를 다운로드합니다."></textarea>
+
+    <div class="result-footer">
+      <span class="confidence-badge" id="confidenceBadge"></span>
+      <button class="btn-secondary" id="copyBtn" onclick="copyToClipboard()" style="padding:8px 18px;font-size:.82rem;">
+        📋 복사
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tesseract.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+/* ═══════════════════════════════════════
+   드로잉 엔진
+═══════════════════════════════════════ */
+const canvas   = document.getElementById('drawCanvas');
+const ctx      = canvas.getContext('2d');
+
+let isDrawing  = false;
+let currentTool = 'pen';
+let penSize    = 4;
+let penColor   = '#000000';
+let history    = [];          // ImageData 스택
+const MAX_HIST = 30;
+
+function initCanvas() {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  saveHistory();
+}
+
+function saveHistory() {
+  if (history.length >= MAX_HIST) history.shift();
+  history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x: (src.clientX - rect.left) * scaleX,
+    y: (src.clientY - rect.top)  * scaleY
+  };
+}
+
+function startDraw(e) {
+  e.preventDefault();
+  saveHistory();
+  isDrawing = true;
+  const {x, y} = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+}
+
+function draw(e) {
+  if (!isDrawing) return;
+  e.preventDefault();
+  const {x, y} = getPos(e);
+
+  ctx.lineWidth   = currentTool === 'eraser' ? penSize * 5 : penSize;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : penColor;
+  ctx.globalCompositeOperation = 'source-over';
+
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+}
+
+function stopDraw() {
+  if (!isDrawing) return;
+  isDrawing = false;
+  ctx.beginPath();
+}
+
+function undo() {
+  if (history.length <= 1) return;
+  history.pop();
+  ctx.putImageData(history[history.length - 1], 0, 0);
+}
+
+function clearCanvas() {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  history = [];
+  saveHistory();
+}
+
+function setTool(tool) {
+  currentTool = tool;
+  document.getElementById('penBtn').classList.toggle('active', tool === 'pen');
+  document.getElementById('eraserBtn').classList.toggle('active', tool === 'eraser');
+  canvas.style.cursor = tool === 'eraser' ? 'cell' : 'crosshair';
+}
+
+// 마우스 이벤트
+canvas.addEventListener('mousedown',  startDraw);
+canvas.addEventListener('mousemove',  draw);
+canvas.addEventListener('mouseup',    stopDraw);
+canvas.addEventListener('mouseleave', stopDraw);
+
+// 터치 이벤트
+canvas.addEventListener('touchstart', startDraw, {passive: false});
+canvas.addEventListener('touchmove',  draw,      {passive: false});
+canvas.addEventListener('touchend',   stopDraw);
+
+// 키보드 단축키
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
+  if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); convertToText(); }
+});
+
+initCanvas();
+
+
+/* ═══════════════════════════════════════
+   이미지 전처리
+═══════════════════════════════════════ */
+function preprocessForOCR(src) {
+  const scale  = 2;
+  const off    = document.createElement('canvas');
+  off.width    = src.width  * scale;
+  off.height   = src.height * scale;
+  const octx   = off.getContext('2d');
+
+  // 흰 배경
+  octx.fillStyle = '#ffffff';
+  octx.fillRect(0, 0, off.width, off.height);
+
+  // 업스케일
+  octx.drawImage(src, 0, 0, off.width, off.height);
+
+  // 이진화 (임계값 180)
+  const imgData = octx.getImageData(0, 0, off.width, off.height);
+  const d = imgData.data;
+  const THRESHOLD = 180;
+  for (let i = 0; i < d.length; i += 4) {
+    const lum = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+    const val = lum < THRESHOLD ? 0 : 255;
+    d[i] = d[i+1] = d[i+2] = val;
+    d[i+3] = 255;
+  }
+  octx.putImageData(imgData, 0, 0);
+
+  return off;
+}
+
+
+/* ═══════════════════════════════════════
+   Tesseract.js 워커 싱글톤
+═══════════════════════════════════════ */
+let tesseractWorker = null;
+let workerLang      = null;
+
+async function getWorker(lang) {
+  if (tesseractWorker && workerLang === lang) return tesseractWorker;
+
+  if (tesseractWorker) {
+    await tesseractWorker.terminate();
+    tesseractWorker = null;
+  }
+
+  updateProgress('언어 데이터 로드 중…', 5);
+
+  const worker = await Tesseract.createWorker(lang, 1, {
+    logger: m => {
+      if (m.status === 'loading tesseract core') updateProgress('Tesseract 코어 로드 중…', 10);
+      else if (m.status === 'initializing tesseract') updateProgress('Tesseract 초기화 중…', 20);
+      else if (m.status === 'loading language traineddata') {
+        const pct = 20 + Math.round((m.progress || 0) * 50);
+        updateProgress(`언어 데이터 다운로드 중… ${Math.round((m.progress||0)*100)}%`, pct);
+      }
+      else if (m.status === 'initializing api') updateProgress('API 초기화 중…', 75);
+      else if (m.status === 'recognizing text') {
+        const pct = 80 + Math.round((m.progress || 0) * 18);
+        updateProgress(`텍스트 인식 중… ${Math.round((m.progress||0)*100)}%`, pct);
+      }
+    }
+  });
+
+  tesseractWorker = worker;
+  workerLang      = lang;
+  return worker;
+}
+
+
+/* ═══════════════════════════════════════
+   진행률 UI
+═══════════════════════════════════════ */
+function updateProgress(text, pct) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent  = text;
+}
+
+function showProgress(show) {
+  document.getElementById('progressWrap').classList.toggle('visible', show);
+}
+
+
+/* ═══════════════════════════════════════
+   변환 메인
+═══════════════════════════════════════ */
+async function convertToText() {
+  const btn  = document.getElementById('convertBtn');
+  const lang = document.getElementById('langSelect').value;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ 변환 중…';
+  showProgress(true);
+  updateProgress('캔버스 전처리 중…', 2);
+
+  try {
+    // 전처리
+    const processed = preprocessForOCR(canvas);
+
+    // 워커 획득 + OCR
+    const worker = await getWorker(lang);
+    updateProgress('인식 중…', 80);
+
+    const { data } = await worker.recognize(processed);
+
+    updateProgress('완료!', 100);
+
+    // 결과 표시
+    const resultText = document.getElementById('resultText');
+    resultText.value = data.text.trim() || '(인식된 텍스트 없음)';
+
+    // 신뢰도 배지
+    const badge = document.getElementById('confidenceBadge');
+    const conf  = Math.round(data.confidence);
+    badge.textContent = `신뢰도 ${conf}%`;
+    badge.className   = 'confidence-badge visible' +
+      (conf >= 70 ? '' : conf >= 40 ? ' mid' : ' bad');
+
+    setTimeout(() => showProgress(false), 800);
+
+  } catch (err) {
+    updateProgress('오류 발생: ' + err.message, 0);
+    document.getElementById('resultText').value = '⚠ 변환 실패:\n' + err.message;
+    setTimeout(() => showProgress(false), 3000);
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '⚡ 변환하기';
+  }
+}
+
+
+/* ═══════════════════════════════════════
+   클립보드 복사
+═══════════════════════════════════════ */
+async function copyToClipboard() {
+  const text = document.getElementById('resultText').value;
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity  = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = '✔ 복사됨';
+  setTimeout(() => btn.textContent = '📋 복사', 1500);
+}
+</script>
+</body>
+</html>

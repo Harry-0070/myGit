@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>텍스트 → 손글씨 변환기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@300;400;700&family=Dancing+Script:wght@400;700&family=Indie+Flower&family=Permanent+Marker&family=Satisfy&family=Patrick+Hand&family=Rock+Salt&family=Architects+Daughter&family=Nanum+Pen+Script&family=Nanum+Gothic+Coding&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f0f1a;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-bottom: 1px solid #2a2a4a;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  header .logo {
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  header .subtitle {
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+
+  .container {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    height: calc(100vh - 64px);
+  }
+
+  /* ── 사이드바 ── */
+  .sidebar {
+    background: #12121f;
+    border-right: 1px solid #2a2a4a;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+
+  .section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+    margin-bottom: 10px;
+  }
+
+  textarea#inputText {
+    width: 100%;
+    height: 130px;
+    background: #1c1c2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    color: #e0e0e0;
+    font-size: 0.95rem;
+    padding: 12px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+  textarea#inputText:focus { border-color: #7c3aed; }
+  textarea#inputText::placeholder { color: #4b5563; }
+
+  /* 옵션 그리드 */
+  .option-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .option-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .opt-btn {
+    background: #1c1c2e;
+    border: 1.5px solid #2a2a4a;
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-size: 0.78rem;
+    padding: 8px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    line-height: 1.3;
+  }
+  .opt-btn:hover { border-color: #7c3aed; color: #a78bfa; }
+  .opt-btn.active {
+    background: #2d1b69;
+    border-color: #7c3aed;
+    color: #c4b5fd;
+  }
+  .opt-btn .icon { font-size: 1.1rem; display: block; margin-bottom: 2px; }
+
+  /* 색상 팔레트 */
+  .color-palette {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .color-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.active { border-color: #fff; transform: scale(1.15); }
+
+  /* 슬라이더 */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .slider-label { font-size: 0.8rem; color: #9ca3af; min-width: 60px; }
+  .slider-val { font-size: 0.8rem; color: #a78bfa; min-width: 36px; text-align: right; }
+  input[type=range] {
+    flex: 1;
+    accent-color: #7c3aed;
+    height: 4px;
+  }
+
+  /* 체크박스 */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #9ca3af;
+    cursor: pointer;
+    user-select: none;
+  }
+  .checkbox-row input { accent-color: #7c3aed; width: 15px; height: 15px; cursor: pointer; }
+
+  /* 버튼 */
+  .btn-generate {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-generate:hover { opacity: 0.9; }
+  .btn-generate:active { transform: scale(0.98); }
+
+  /* ── 캔버스 영역 ── */
+  .canvas-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #0f0f1a;
+    position: relative;
+    overflow: auto;
+  }
+
+  .canvas-wrapper {
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    border-radius: 4px;
+  }
+
+  canvas#outputCanvas {
+    display: block;
+    max-width: 100%;
+  }
+
+  .toolbar {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .tool-btn {
+    background: rgba(30,30,50,0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    color: #cbd5e1;
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tool-btn:hover { border-color: #7c3aed; color: #a78bfa; }
+
+  /* 비율 선택 */
+  .ratio-row {
+    display: flex;
+    gap: 6px;
+  }
+  .ratio-btn {
+    flex: 1;
+    background: #1c1c2e;
+    border: 1.5px solid #2a2a4a;
+    border-radius: 6px;
+    color: #9ca3af;
+    font-size: 0.72rem;
+    padding: 6px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .ratio-btn:hover { border-color: #7c3aed; color: #a78bfa; }
+  .ratio-btn.active { background: #2d1b69; border-color: #7c3aed; color: #c4b5fd; }
+
+  /* 로딩 */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15,15,26,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: #a78bfa;
+    border-radius: 4px;
+  }
+  .loading-overlay.show { display: flex; }
+
+  .spinner {
+    width: 28px; height: 28px;
+    border: 3px solid #2a2a4a;
+    border-top-color: #7c3aed;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 10px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 고급 옵션 토글 */
+  .advanced-toggle {
+    font-size: 0.8rem;
+    color: #6b7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+  }
+  .advanced-toggle:hover { color: #a78bfa; }
+  .advanced-content { display: none; }
+  .advanced-content.open { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">✍️ 손글씨 변환기</span>
+  <span class="subtitle">Text → Handwriting</span>
+</header>
+
+<div class="container">
+  <!-- 사이드바 -->
+  <div class="sidebar">
+
+    <!-- 텍스트 입력 -->
+    <div>
+      <div class="section-title">변환할 텍스트</div>
+      <textarea id="inputText" placeholder="여기에 텍스트를 입력하세요...
+
+오늘 하루도 수고했어.
+내일은 더 잘 할 수 있을 거야. 😊"></textarea>
+    </div>
+
+    <!-- 손글씨 스타일 -->
+    <div>
+      <div class="section-title">손글씨 스타일</div>
+      <div class="option-grid">
+        <button class="opt-btn active" data-font="Kalam" onclick="selectFont(this)">
+          <span class="icon">📝</span>단정한 인쇄체
+        </button>
+        <button class="opt-btn" data-font="Dancing Script" onclick="selectFont(this)">
+          <span class="icon">🖊️</span>우아한 필기체
+        </button>
+        <button class="opt-btn" data-font="Caveat" onclick="selectFont(this)">
+          <span class="icon">✏️</span>자유로운 낙서
+        </button>
+        <button class="opt-btn" data-font="Permanent Marker" onclick="selectFont(this)">
+          <span class="icon">🖍️</span>굵은 마커
+        </button>
+        <button class="opt-btn" data-font="Indie Flower" onclick="selectFont(this)">
+          <span class="icon">🌸</span>귀여운 손글씨
+        </button>
+        <button class="opt-btn" data-font="Rock Salt" onclick="selectFont(this)">
+          <span class="icon">📜</span>빈티지 스타일
+        </button>
+        <button class="opt-btn" data-font="Satisfy" onclick="selectFont(this)">
+          <span class="icon">💫</span>세련된 흘림체
+        </button>
+        <button class="opt-btn" data-font="Architects Daughter" onclick="selectFont(this)">
+          <span class="icon">📐</span>건축 스케치
+        </button>
+        <button class="opt-btn" data-font="Nanum Pen Script" onclick="selectFont(this)">
+          <span class="icon">🇰🇷</span>나눔펜 (한국어)
+        </button>
+        <button class="opt-btn" data-font="Patrick Hand" onclick="selectFont(this)">
+          <span class="icon">✒️</span>정갈한 필체
+        </button>
+      </div>
+    </div>
+
+    <!-- 종이 종류 -->
+    <div>
+      <div class="section-title">종이 종류</div>
+      <div class="option-grid">
+        <button class="opt-btn active" data-paper="white" onclick="selectPaper(this)">
+          <span class="icon">⬜</span>흰 종이
+        </button>
+        <button class="opt-btn" data-paper="lined" onclick="selectPaper(this)">
+          <span class="icon">📓</span>줄 노트
+        </button>
+        <button class="opt-btn" data-paper="parchment" onclick="selectPaper(this)">
+          <span class="icon">📜</span>양피지
+        </button>
+        <button class="opt-btn" data-paper="legal" onclick="selectPaper(this)">
+          <span class="icon">🟡</span>법률 노트
+        </button>
+        <button class="opt-btn" data-paper="grid" onclick="selectPaper(this)">
+          <span class="icon">🔲</span>모눈종이
+        </button>
+        <button class="opt-btn" data-paper="sticky" onclick="selectPaper(this)">
+          <span class="icon">📌</span>포스트잇
+        </button>
+      </div>
+    </div>
+
+    <!-- 잉크 색상 -->
+    <div>
+      <div class="section-title">잉크 색상</div>
+      <div class="color-palette">
+        <div class="color-swatch active" style="background:#1a1a1a" data-color="#1a1a1a" title="클래식 블랙" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#1e3a8a" data-color="#1e3a8a" title="프로 블루" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#4b5563" data-color="#4b5563" title="연필 흑연" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#dc2626" data-color="#dc2626" title="빨간 펜" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#16a34a" data-color="#16a34a" title="딥 그린" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#7c3aed" data-color="#7c3aed" title="보라 젤펜" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#0891b2" data-color="#0891b2" title="청록색" onclick="selectColor(this)"></div>
+        <div class="color-swatch" style="background:#ea580c" data-color="#ea580c" title="주황색" onclick="selectColor(this)"></div>
+        <!-- 커스텀 색상 -->
+        <div style="position:relative;width:32px;height:32px;">
+          <input type="color" id="customColor" value="#1a1a1a"
+            style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;border:none;"
+            oninput="onCustomColor(this)">
+          <div style="width:32px;height:32px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);border:2px solid #4b5563;cursor:pointer;" title="사용자 지정 색상"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 크기 및 간격 -->
+    <div>
+      <div class="section-title">크기 및 간격</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="slider-row">
+          <span class="slider-label">글자 크기</span>
+          <input type="range" id="fontSize" min="16" max="72" value="32" oninput="updateVal('fontSize','fontSizeVal')">
+          <span class="slider-val" id="fontSizeVal">32px</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">줄 간격</span>
+          <input type="range" id="lineHeight" min="1.0" max="3.0" step="0.1" value="1.8" oninput="updateVal('lineHeight','lineHeightVal','배')">
+          <span class="slider-val" id="lineHeightVal">1.8배</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">여백</span>
+          <input type="range" id="padding" min="20" max="120" value="60" oninput="updateVal('padding','paddingVal','px')">
+          <span class="slider-val" id="paddingVal">60px</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 출력 비율 -->
+    <div>
+      <div class="section-title">출력 비율</div>
+      <div class="ratio-row">
+        <button class="ratio-btn active" data-ratio="1:1" onclick="selectRatio(this)">1:1<br><small>정사각</small></button>
+        <button class="ratio-btn" data-ratio="3:4" onclick="selectRatio(this)">3:4<br><small>세로</small></button>
+        <button class="ratio-btn" data-ratio="16:9" onclick="selectRatio(this)">16:9<br><small>와이드</small></button>
+        <button class="ratio-btn" data-ratio="8.5:11" onclick="selectRatio(this)">A4<br><small>편지지</small></button>
+      </div>
+    </div>
+
+    <!-- 고급 옵션 -->
+    <div>
+      <div class="advanced-toggle" onclick="toggleAdvanced()">
+        <span id="advArrow">▶</span> 고급 옵션
+      </div>
+      <div class="advanced-content" id="advancedContent">
+        <div style="height:10px;"></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label class="checkbox-row">
+            <input type="checkbox" id="chkTilt" checked> 글자 기울기 변화 (자연스러움)
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="chkWobble"> 손 떨림 효과
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="chkShadow"> 텍스트 그림자
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="chkStain"> 커피 얼룩 추가
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="chkWrinkle"> 구겨진 효과
+          </label>
+          <div class="slider-row" style="margin-top:4px;">
+            <span class="slider-label">잉크 농도</span>
+            <input type="range" id="opacity" min="0.4" max="1.0" step="0.05" value="0.92" oninput="updateVal('opacity','opacityVal','')">
+            <span class="slider-val" id="opacityVal">0.92</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 생성 버튼 -->
+    <button class="btn-generate" onclick="generate()">✨ 손글씨 이미지 생성</button>
+
+  </div>
+
+  <!-- 캔버스 영역 -->
+  <div class="canvas-area">
+    <div class="toolbar">
+      <button class="tool-btn" onclick="downloadImage()">⬇ 다운로드</button>
+      <button class="tool-btn" onclick="copyToClipboard()">📋 복사</button>
+    </div>
+    <div class="canvas-wrapper">
+      <canvas id="outputCanvas"></canvas>
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div> 생성 중...
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 상태 ──
+let state = {
+  font: 'Kalam',
+  paper: 'white',
+  color: '#1a1a1a',
+  ratio: '1:1',
+  fontSize: 32,
+  lineHeight: 1.8,
+  padding: 60,
+  opacity: 0.92,
+};
+
+// ── 선택 핸들러 ──
+function selectFont(el) {
+  document.querySelectorAll('[data-font]').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.font = el.dataset.font;
+}
+
+function selectPaper(el) {
+  document.querySelectorAll('[data-paper]').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.paper = el.dataset.paper;
+}
+
+function selectColor(el) {
+  document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.color = el.dataset.color;
+}
+
+function onCustomColor(input) {
+  document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('active'));
+  state.color = input.value;
+}
+
+function selectRatio(el) {
+  document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  state.ratio = el.dataset.ratio;
+}
+
+function updateVal(id, valId, suffix = 'px') {
+  const val = document.getElementById(id).value;
+  const display = suffix === '' ? parseFloat(val).toFixed(2) : val;
+  document.getElementById(valId).textContent = display + suffix;
+  state[id] = parseFloat(val);
+}
+
+function toggleAdvanced() {
+  const el = document.getElementById('advancedContent');
+  const arrow = document.getElementById('advArrow');
+  el.classList.toggle('open');
+  arrow.textContent = el.classList.contains('open') ? '▼' : '▶';
+}
+
+// ── 캔버스 크기 계산 ──
+function getCanvasSize(ratio, baseSize = 800) {
+  const [w, h] = ratio.split(':').map(Number);
+  if (w >= h) return { width: baseSize, height: Math.round(baseSize * h / w) };
+  return { width: Math.round(baseSize * w / h), height: baseSize };
+}
+
+// ── 종이 배경 그리기 ──
+function drawPaper(ctx, w, h, paper) {
+  ctx.save();
+
+  // 기본 배경
+  const bg = {
+    white: '#fafaf8',
+    lined: '#f8f9ff',
+    parchment: '#f4e4b8',
+    legal: '#fffde7',
+    grid: '#fafffe',
+    sticky: '#fff9c4',
+  }[paper] || '#fafaf8';
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // 질감 노이즈 (미세 점)
+  for (let i = 0; i < w * h / 200; i++) {
+    const x = Math.random() * w;
+    const y = Math.random() * h;
+    const alpha = Math.random() * 0.04;
+    ctx.fillStyle = `rgba(100,80,60,${alpha})`;
+    ctx.fillRect(x, y, 1, 1);
+  }
+
+  // 종이별 특수 요소
+  if (paper === 'lined') {
+    ctx.strokeStyle = 'rgba(100,140,255,0.3)';
+    ctx.lineWidth = 1;
+    const state_padding = parseInt(document.getElementById('padding').value);
+    const lineSpacing = Math.max(38, state_padding * 0.9);
+    for (let y = state_padding * 1.5; y < h - state_padding; y += lineSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(state_padding * 0.6, y);
+      ctx.lineTo(w - state_padding * 0.6, y);
+      ctx.stroke();
+    }
+    // 빨간 여백선
+    ctx.strokeStyle = 'rgba(255,100,100,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(state_padding * 1.4, 0);
+    ctx.lineTo(state_padding * 1.4, h);
+    ctx.stroke();
+  }
+
+  if (paper === 'grid') {
+    ctx.strokeStyle = 'rgba(100,200,220,0.2)';
+    ctx.lineWidth = 0.5;
+    const gs = 30;
+    for (let x = 0; x < w; x += gs) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let y = 0; y < h; y += gs) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+  }
+
+  if (paper === 'parchment') {
+    // 가장자리 어둡게
+    const grad = ctx.createRadialGradient(w/2, h/2, h*0.2, w/2, h/2, Math.max(w,h)*0.7);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(80,50,10,0.25)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  if (paper === 'legal') {
+    ctx.strokeStyle = 'rgba(200,180,50,0.4)';
+    ctx.lineWidth = 1;
+    const state_padding = parseInt(document.getElementById('padding').value);
+    const lineSpacing = Math.max(38, state_padding * 0.9);
+    for (let y = state_padding * 1.5; y < h - state_padding; y += lineSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(state_padding * 0.6, y);
+      ctx.lineTo(w - state_padding * 0.6, y);
+      ctx.stroke();
+    }
+  }
+
+  if (paper === 'sticky') {
+    // 포스트잇 접힌 모서리
+    ctx.fillStyle = 'rgba(200,180,0,0.15)';
+    ctx.beginPath();
+    ctx.moveTo(w - 30, h); ctx.lineTo(w, h - 30); ctx.lineTo(w, h);
+    ctx.closePath(); ctx.fill();
+    // 상단 그림자
+    const topGrad = ctx.createLinearGradient(0, 0, 0, 20);
+    topGrad.addColorStop(0, 'rgba(0,0,0,0.08)');
+    topGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, w, 20);
+  }
+
+  ctx.restore();
+}
+
+// ── 구겨진 효과 ──
+function drawWrinkle(ctx, w, h) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(120,100,80,0.08)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    const x1 = Math.random() * w;
+    const y1 = Math.random() * h;
+    const x2 = x1 + (Math.random() - 0.5) * 200;
+    const y2 = y1 + (Math.random() - 0.5) * 200;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.quadraticCurveTo(
+      (x1 + x2) / 2 + (Math.random() - 0.5) * 40,
+      (y1 + y2) / 2 + (Math.random() - 0.5) * 40,
+      x2, y2
+    );
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── 커피 얼룩 ──
+function drawStain(ctx, w, h) {
+  ctx.save();
+  const sx = Math.random() * w * 0.6 + w * 0.1;
+  const sy = Math.random() * h * 0.6 + h * 0.1;
+  const r = 25 + Math.random() * 30;
+  const grad = ctx.createRadialGradient(sx, sy, r * 0.3, sx, sy, r);
+  grad.addColorStop(0, 'rgba(101,67,33,0.0)');
+  grad.addColorStop(0.7, 'rgba(101,67,33,0.04)');
+  grad.addColorStop(1, 'rgba(101,67,33,0.12)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(sx, sy, r, r * 0.85, Math.random(), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ── 메인 생성 함수 ──
+async function generate() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) { alert('텍스트를 입력해주세요.'); return; }
+
+  document.getElementById('loadingOverlay').classList.add('show');
+
+  // 폰트 로딩 대기
+  await document.fonts.ready;
+
+  setTimeout(() => {
+    try {
+      renderCanvas(text);
+    } finally {
+      document.getElementById('loadingOverlay').classList.remove('show');
+    }
+  }, 100);
+}
+
+function renderCanvas(text) {
+  const canvas = document.getElementById('outputCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // 캔버스 크기 설정
+  const { width, height } = getCanvasSize(state.ratio, 900);
+  canvas.width = width;
+  canvas.height = height;
+
+  // 화면 표시 크기 (최대 700px)
+  const maxDisplay = Math.min(700, canvas.parentElement.clientWidth - 48);
+  if (width > height) {
+    canvas.style.width = maxDisplay + 'px';
+    canvas.style.height = Math.round(maxDisplay * height / width) + 'px';
+  } else {
+    canvas.style.height = maxDisplay + 'px';
+    canvas.style.width = Math.round(maxDisplay * width / height) + 'px';
+  }
+
+  const padding = state.padding;
+  const fontSize = state.fontSize;
+  const lineHeightPx = fontSize * state.lineHeight;
+  const fontFamily = state.font;
+  const inkColor = state.color;
+  const useWobble = document.getElementById('chkWobble').checked;
+  const useTilt = document.getElementById('chkTilt').checked;
+  const useShadow = document.getElementById('chkShadow').checked;
+  const useStain = document.getElementById('chkStain').checked;
+  const useWrinkle = document.getElementById('chkWrinkle').checked;
+  const inkOpacity = state.opacity;
+
+  // 배경 그리기
+  drawPaper(ctx, width, height, state.paper);
+  if (useWrinkle) drawWrinkle(ctx, width, height);
+  if (useStain) drawStain(ctx, width, height);
+
+  // 텍스트 설정
+  ctx.font = `${fontSize}px "${fontFamily}"`;
+  const maxWidth = width - padding * 2;
+
+  // 워드 래핑
+  const rawLines = text.split('\n');
+  const wrappedLines = [];
+  for (const rawLine of rawLines) {
+    if (rawLine.trim() === '') { wrappedLines.push(''); continue; }
+    const words = rawLine.split(' ');
+    let current = '';
+    for (const word of words) {
+      const test = current ? current + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && current) {
+        wrappedLines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) wrappedLines.push(current);
+  }
+
+  // 텍스트 그리기
+  ctx.textBaseline = 'top';
+
+  let startY = padding;
+  // 세로 중앙 정렬 (짧은 텍스트)
+  const totalTextHeight = wrappedLines.length * lineHeightPx;
+  if (totalTextHeight < height - padding * 2) {
+    startY = padding + (height - padding * 2 - totalTextHeight) * 0.25;
+  }
+
+  for (let i = 0; i < wrappedLines.length; i++) {
+    const line = wrappedLines[i];
+    if (!line) continue;
+
+    const y = startY + i * lineHeightPx;
+    if (y > height - padding) break;
+
+    if (useWobble || useTilt) {
+      // 글자별 개별 렌더링
+      let x = padding;
+      for (const ch of line) {
+        ctx.save();
+        const wobbleX = useWobble ? (Math.random() - 0.5) * 1.5 : 0;
+        const wobbleY = useWobble ? (Math.random() - 0.5) * 1.5 : 0;
+        const tilt = useTilt ? (Math.random() - 0.5) * 0.06 : 0;
+
+        ctx.translate(x + wobbleX, y + wobbleY);
+        ctx.rotate(tilt);
+
+        if (useShadow) {
+          ctx.shadowColor = 'rgba(0,0,0,0.15)';
+          ctx.shadowBlur = 2;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 1;
+        }
+
+        const hex = inkColor;
+        const r = parseInt(hex.slice(1,3),16);
+        const g = parseInt(hex.slice(3,5),16);
+        const b = parseInt(hex.slice(5,7),16);
+        ctx.fillStyle = `rgba(${r},${g},${b},${inkOpacity})`;
+        ctx.font = `${fontSize + (useWobble ? (Math.random()-0.5)*2 : 0)}px "${fontFamily}"`;
+        ctx.fillText(ch, 0, 0);
+
+        const charWidth = ctx.measureText(ch).width;
+        x += charWidth + (useWobble ? (Math.random()-0.5)*0.5 : 0);
+        ctx.restore();
+      }
+    } else {
+      // 라인 단위 렌더링
+      ctx.save();
+      if (useShadow) {
+        ctx.shadowColor = 'rgba(0,0,0,0.12)';
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+      }
+      const hex = inkColor;
+      const r = parseInt(hex.slice(1,3),16);
+      const g = parseInt(hex.slice(3,5),16);
+      const b = parseInt(hex.slice(5,7),16);
+      ctx.fillStyle = `rgba(${r},${g},${b},${inkOpacity})`;
+      ctx.font = `${fontSize}px "${fontFamily}"`;
+      ctx.fillText(line, padding, y);
+      ctx.restore();
+    }
+  }
+}
+
+// ── 다운로드 ──
+function downloadImage() {
+  const canvas = document.getElementById('outputCanvas');
+  if (canvas.width === 0) { alert('먼저 이미지를 생성해주세요.'); return; }
+  const link = document.createElement('a');
+  link.download = `handwriting_${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ── 클립보드 복사 ──
+async function copyToClipboard() {
+  const canvas = document.getElementById('outputCanvas');
+  if (canvas.width === 0) { alert('먼저 이미지를 생성해주세요.'); return; }
+  canvas.toBlob(async (blob) => {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      const btn = event.target;
+      btn.textContent = '✅ 복사됨!';
+      setTimeout(() => btn.textContent = '📋 복사', 1500);
+    } catch {
+      alert('클립보드 복사가 지원되지 않는 환경입니다. 다운로드를 이용해주세요.');
+    }
+  });
+}
+
+// ── 초기 렌더링 ──
+window.addEventListener('load', () => {
+  document.fonts.ready.then(() => {
+    const defaultText = document.getElementById('inputText').value.trim();
+    if (defaultText) renderCanvas(defaultText);
+  });
+});
+
+// Enter 제외 단축키: Ctrl+Enter 로 생성
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'Enter') generate();
+});
+</script>
+</body>
+</html>
