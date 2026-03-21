@@ -1,0 +1,152 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #0d0d0d;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  user-select: none;
+}
+
+#app {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* ── 게임 보드 ── */
+.board-wrap {
+  position: relative;
+  line-height: 0;
+}
+
+#canvas-board {
+  display: block;
+  border: 2px solid #00d4ff;
+  box-shadow: 0 0 20px #00d4ff55, 0 0 40px #00d4ff22;
+  background: #111122;
+}
+
+/* ── 사이드 패널 ── */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+  min-width: 130px;
+}
+
+.panel-label {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #00d4ff;
+  font-weight: 700;
+}
+
+#canvas-next,
+#canvas-hold {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4e;
+  box-shadow: 0 0 10px #00d4ff33;
+}
+
+/* ── 점수 박스 ── */
+.info-box {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4e;
+  border-radius: 6px;
+  padding: 10px 16px;
+  width: 120px;
+  text-align: center;
+}
+
+.info-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.info-box > div:last-child {
+  font-size: 22px;
+  font-weight: 700;
+  color: #00d4ff;
+  text-shadow: 0 0 8px #00d4ff;
+}
+
+/* ── 오버레이 ── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  backdrop-filter: blur(2px);
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-text {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: #00d4ff;
+  text-shadow: 0 0 20px #00d4ff;
+}
+
+.overlay-sub {
+  font-size: 14px;
+  color: #aaa;
+  letter-spacing: 2px;
+}
+
+#btn-restart {
+  margin-top: 8px;
+  padding: 10px 28px;
+  background: transparent;
+  border: 2px solid #00d4ff;
+  color: #00d4ff;
+  font-size: 14px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+#btn-restart:hover {
+  background: #00d4ff;
+  color: #0d0d0d;
+}
+
+/* ── 키 힌트 ── */
+#key-hint {
+  margin-top: 16px;
+  font-size: 11px;
+  color: #444;
+  letter-spacing: 0.5px;
+}
+
+/* ── 반응형 ── */
+@media (max-height: 700px) {
+  #canvas-board { width: 210px; height: 420px; }
+  #canvas-next  { width: 84px;  height: 84px;  }
+  #canvas-hold  { width: 84px;  height: 84px;  }
+  .info-box { width: 90px; padding: 8px 10px; }
+  .info-box > div:last-child { font-size: 18px; }
+  .overlay-text { font-size: 26px; }
+}

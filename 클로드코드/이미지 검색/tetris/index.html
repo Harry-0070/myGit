@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tetris</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 좌: Hold -->
+    <div class="side-panel left-panel">
+      <div class="panel-label">HOLD</div>
+      <canvas id="canvas-hold" width="120" height="120"></canvas>
+    </div>
+
+    <!-- 중: 게임 보드 -->
+    <div class="board-wrap">
+      <canvas id="canvas-board" width="300" height="600"></canvas>
+      <!-- 일시정지 오버레이 -->
+      <div id="overlay-pause" class="overlay hidden">
+        <div class="overlay-text">PAUSED</div>
+        <div class="overlay-sub">P 키로 재개</div>
+      </div>
+      <!-- 게임오버 오버레이 -->
+      <div id="overlay-gameover" class="overlay hidden">
+        <div class="overlay-text">GAME OVER</div>
+        <div id="final-score" class="overlay-sub"></div>
+        <button id="btn-restart">다시 시작</button>
+      </div>
+    </div>
+
+    <!-- 우: Next + 점수 -->
+    <div class="side-panel right-panel">
+      <div class="panel-label">NEXT</div>
+      <canvas id="canvas-next" width="120" height="120"></canvas>
+
+      <div class="info-box">
+        <div class="info-label">SCORE</div>
+        <div id="score">0</div>
+      </div>
+      <div class="info-box">
+        <div class="info-label">LEVEL</div>
+        <div id="level">1</div>
+      </div>
+      <div class="info-box">
+        <div class="info-label">LINES</div>
+        <div id="lines">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 키 안내 -->
+  <div id="key-hint">
+    ← → 이동 &nbsp;|&nbsp; ↑ 회전 &nbsp;|&nbsp; Z 반시계 &nbsp;|&nbsp;
+    ↓ 소프트드롭 &nbsp;|&nbsp; Space 하드드롭 &nbsp;|&nbsp; C 홀드 &nbsp;|&nbsp; P 일시정지
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\hmin1\\\\OneDrive\\\\바탕 화면\\\\myGit\\\\클로드코드\\\\이미지 검색\" /s /b)",
+      "Bash(git:*)"
+    ]
+  }
+}
