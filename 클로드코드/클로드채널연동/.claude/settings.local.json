@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -fsSL https://bun.sh/install)",
+      "Bash(bash)",
+      "Bash(export BUN_INSTALL=\"$HOME/.bun\")",
+      "Bash(export PATH=\"$BUN_INSTALL/bin:$PATH\")",
+      "Bash(bun --version)",
+      "Read(//c/Users/hmin1/**)",
+      "Bash(~/.bashrc)",
+      "Bash(mkdir -p ~/.claude/channels/telegram)",
+      "Bash(~/.claude/channels/telegram/.env)",
+      "Skill(telegram:access)",
+      "Bash(curl:*)",
+      "Bash(tasklist)",
+      "Bash(netstat -ano)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''hooks'''', {}\\), indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(cmd /c 'echo %PATH%')",
+      "Bash(tr ';' '\\\\n')",
+      "Bash(grep -iv \"^$\")",
+      "Bash(ls:*)",
+      "Bash(grep -iv \"^$\\\\|Binary\\\\|Microsoft\\\\|Copyright\")",
+      "mcp__plugin_telegram_telegram__reply"
+    ]
+  }
+}

@@ -3,7 +3,13 @@
     "allow": [
       "Bash(python --version && pip show flask numpy pillow scikit-learn 2>&1 | grep -E \"^Name:|^Version:|not found\")",
       "Bash(cd \"C:\\\\Users\\\\hmin1\\\\OneDrive\\\\바탕 화면\\\\myGit\\\\클로드코드\\\\손글씨\" && python build_web.py)",
-      "Bash(start \"C:\\\\Users\\\\hmin1\\\\OneDrive\\\\바탕 화면\\\\myGit\\\\클로드코드\\\\손글씨\\\\digit_web.html\")"
+      "Bash(start \"C:\\\\Users\\\\hmin1\\\\OneDrive\\\\바탕 화면\\\\myGit\\\\클로드코드\\\\손글씨\\\\digit_web.html\")",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(claude mcp:*)",
+      "Skill(update-config)",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_take_screenshot"
     ]
   }
 }
