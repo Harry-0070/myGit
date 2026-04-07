@@ -1,0 +1,11 @@
+{
+  "name": "fabric-commerce",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:storefront": "pnpm --filter storefront dev",
+    "build": "pnpm --filter backend build && pnpm --filter storefront build",
+    "db:migrate": "pnpm --filter backend db:migrate"
+  }
+}

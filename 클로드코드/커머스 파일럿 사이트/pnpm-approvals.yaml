@@ -1,0 +1,4 @@
+approvedBuildDependencies:
+  esbuild: true
+  msgpackr-extract: true
+  protobufjs: true
