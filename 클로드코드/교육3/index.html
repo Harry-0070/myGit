@@ -231,6 +231,139 @@
   };
 
   // ===== RENDERER =====
+  const Renderer = {
+    CELL: 30,
+    boardCanvas: null, boardCtx: null,
+    nextCanvas: null,  nextCtx: null,
+    holdCanvas: null,  holdCtx: null,
+
+    init() {
+      this.boardCanvas = document.getElementById('board');
+      this.boardCtx    = this.boardCanvas.getContext('2d');
+      this.nextCanvas  = document.getElementById('next');
+      this.nextCtx     = this.nextCanvas.getContext('2d');
+      this.holdCanvas  = document.getElementById('hold');
+      this.holdCtx     = this.holdCanvas.getContext('2d');
+    },
+
+    // 단일 셀 그리기 (alpha: 고스트용 투명도)
+    drawCell(ctx, x, y, color, alpha = 1) {
+      const s = this.CELL;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = color;
+      ctx.fillRect(x * s + 1, y * s + 1, s - 2, s - 2);
+      // 상단 하이라이트
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      ctx.fillRect(x * s + 2, y * s + 2, s - 4, 5);
+      ctx.globalAlpha = 1;
+    },
+
+    // 보드 + 피스 + 고스트 + 오버레이 렌더링
+    drawBoard() {
+      const ctx = this.boardCtx;
+      const { COLS, ROWS, grid } = Board;
+      const W = this.boardCanvas.width;
+      const H = this.boardCanvas.height;
+
+      // 배경
+      ctx.fillStyle = '#FAFAFA';
+      ctx.fillRect(0, 0, W, H);
+
+      // 그리드 선
+      ctx.strokeStyle = '#E0E0E0';
+      ctx.lineWidth = 0.5;
+      for (let r = 0; r <= ROWS; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * this.CELL);
+        ctx.lineTo(W, r * this.CELL);
+        ctx.stroke();
+      }
+      for (let c = 0; c <= COLS; c++) {
+        ctx.beginPath();
+        ctx.moveTo(c * this.CELL, 0);
+        ctx.lineTo(c * this.CELL, H);
+        ctx.stroke();
+      }
+
+      // 고정된 블록
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++)
+          if (grid[r][c]) this.drawCell(ctx, c, r, grid[r][c]);
+
+      // 진행 중일 때: 고스트 + 현재 피스
+      if (Game.state === 'playing' || Game.state === 'paused') {
+        const gy = Piece.getGhostY();
+        for (let r = 0; r < Piece.shape.length; r++)
+          for (let c = 0; c < Piece.shape[r].length; c++)
+            if (Piece.shape[r][c]) this.drawCell(ctx, Piece.x + c, gy + r, Piece.color, 0.15);
+
+        for (let r = 0; r < Piece.shape.length; r++)
+          for (let c = 0; c < Piece.shape[r].length; c++)
+            if (Piece.shape[r][c]) this.drawCell(ctx, Piece.x + c, Piece.y + r, Piece.color);
+      }
+
+      // 일시정지 오버레이
+      if (Game.state === 'paused') {
+        ctx.fillStyle = 'rgba(250,250,250,0.78)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#212121';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('PAUSED', W / 2, 275);
+        ctx.font = '13px sans-serif';
+        ctx.fillStyle = '#9E9E9E';
+        ctx.fillText('P 키로 재개', W / 2, 308);
+      }
+
+      // 게임오버 오버레이
+      if (Game.state === 'gameover') {
+        ctx.fillStyle = 'rgba(250,250,250,0.88)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#212121';
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillText('GAME OVER', W / 2, 230);
+        ctx.font = '20px sans-serif';
+        ctx.fillText(Game.score.toLocaleString() + ' 점', W / 2, 272);
+        ctx.font = '13px sans-serif';
+        ctx.fillStyle = '#9E9E9E';
+        ctx.fillText('Enter 키로 다시 시작', W / 2, 308);
+      }
+    },
+
+    // Hold / Next 미니 캔버스에 피스 그리기
+    drawMini(ctx, canvas, pieceIdx) {
+      ctx.fillStyle = '#FAFAFA';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (pieceIdx === null || pieceIdx < 0) return;
+
+      const piece = PIECES[pieceIdx];
+      const s = 22;
+      const ox = Math.floor((canvas.width  - piece.shape[0].length * s) / 2);
+      const oy = Math.floor((canvas.height - piece.shape.length    * s) / 2);
+
+      for (let r = 0; r < piece.shape.length; r++) {
+        for (let c = 0; c < piece.shape[r].length; c++) {
+          if (piece.shape[r][c]) {
+            ctx.fillStyle = piece.color;
+            ctx.fillRect(ox + c * s + 1, oy + r * s + 1, s - 2, s - 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.28)';
+            ctx.fillRect(ox + c * s + 2, oy + r * s + 2, s - 4, 5);
+          }
+        }
+      }
+    },
+
+    // 전체 화면 갱신 (매 프레임 호출)
+    draw() {
+      this.drawBoard();
+      this.drawMini(this.nextCtx, this.nextCanvas, Game.nextPieceIdx);
+      this.drawMini(this.holdCtx, this.holdCanvas, Game.heldPieceIdx);
+      document.getElementById('score').textContent = Game.score.toLocaleString();
+      document.getElementById('level').textContent = Game.level;
+      document.getElementById('best').textContent  = Game.bestScore.toLocaleString();
+    },
+  };
 
   // ===== GAME =====
 
