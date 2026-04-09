@@ -525,6 +525,7 @@
 
         // 일시정지 토글 (어떤 상태에서든)
         if (e.code === 'KeyP') {
+          e.preventDefault();
           Game.pause();
           return;
         }
