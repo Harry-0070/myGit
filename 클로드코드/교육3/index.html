@@ -484,6 +484,9 @@
         const temp = this.heldPieceIdx;
         this.heldPieceIdx = Piece.pieceIdx;
         Piece.spawn(temp);
+        if (!Board.isValid(Piece.shape, Piece.x, Piece.y)) {
+          this.gameOver();
+        }
       }
     },
 
