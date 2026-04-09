@@ -141,6 +141,51 @@
   ];
 
   // ===== BOARD =====
+  const Board = {
+    COLS: 10,
+    ROWS: 20,
+    grid: [],
+
+    init() {
+      this.grid = Array.from({ length: this.ROWS }, () => Array(this.COLS).fill(null));
+    },
+
+    // shape: 2D 배열, x/y: 보드 좌표 기준 피스 좌상단 위치
+    // 반환: 유효하면 true (벽/바닥/기존 블록과 충돌 없음)
+    isValid(shape, x, y) {
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape[r].length; c++) {
+          if (!shape[r][c]) continue;
+          const nr = y + r;
+          const nc = x + c;
+          if (nc < 0 || nc >= this.COLS || nr >= this.ROWS) return false;
+          if (nr >= 0 && this.grid[nr][nc] !== null) return false;
+        }
+      }
+      return true;
+    },
+
+    // 피스를 그리드에 고정
+    place(shape, x, y, color) {
+      for (let r = 0; r < shape.length; r++)
+        for (let c = 0; c < shape[r].length; c++)
+          if (shape[r][c]) this.grid[y + r][x + c] = color;
+    },
+
+    // 가득 찬 줄 제거, 제거된 줄 수 반환
+    clearLines() {
+      let cleared = 0;
+      for (let r = this.ROWS - 1; r >= 0; r--) {
+        if (this.grid[r].every(cell => cell !== null)) {
+          this.grid.splice(r, 1);
+          this.grid.unshift(Array(this.COLS).fill(null));
+          cleared++;
+          r++; // 같은 인덱스 재확인
+        }
+      }
+      return cleared;
+    },
+  };
 
   // ===== PIECE =====
 
