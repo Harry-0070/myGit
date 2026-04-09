@@ -511,6 +511,48 @@
   };
 
   // ===== INPUT + INIT =====
+  const Input = {
+    init() {
+      document.addEventListener('keydown', e => {
+        // 게임오버 상태: Enter로 재시작
+        if (Game.state === 'gameover') {
+          if (e.code === 'Enter') {
+            e.preventDefault();
+            Game.start();
+          }
+          return;
+        }
+
+        // 일시정지 토글 (어떤 상태에서든)
+        if (e.code === 'KeyP') {
+          Game.pause();
+          return;
+        }
+
+        // 게임 진행 중에만 동작
+        if (Game.state !== 'playing') return;
+
+        switch (e.code) {
+          case 'ArrowLeft':            Piece.move(-1, 0); break;
+          case 'ArrowRight':           Piece.move(1, 0);  break;
+          case 'ArrowDown':            Game.softDrop();   break;
+          case 'ArrowUp': case 'KeyZ': Piece.rotate();    break;
+          case 'Space':                Game.hardDrop();   break;
+          case 'KeyC':                 Game.hold();       break;
+          default: return; // 해당 없는 키는 preventDefault 생략
+        }
+
+        e.preventDefault();
+        Renderer.draw();
+      });
+    },
+  };
+
+  window.onload = () => {
+    Renderer.init();
+    Input.init();
+    Game.start();
+  };
   </script>
 </body>
 </html>
