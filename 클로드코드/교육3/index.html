@@ -366,6 +366,149 @@
   };
 
   // ===== GAME =====
+  const Game = {
+    state: 'idle',          // 'idle' | 'playing' | 'paused' | 'gameover'
+    score: 0,
+    level: 1,
+    lines: 0,
+    bestScore: 0,
+    lastTime: 0,
+    dropAccumulator: 0,
+    nextPieceIdx: null,
+    heldPieceIdx: null,
+    canHold: true,
+    animId: null,
+
+    // 레벨별 드롭 간격(ms): 레벨1=1000ms, 최소 100ms
+    getDropInterval() {
+      return Math.max(100, 1000 - (this.level - 1) * 80);
+    },
+
+    randomIdx() {
+      return Math.floor(Math.random() * PIECES.length);
+    },
+
+    start() {
+      this.score = 0;
+      this.level = 1;
+      this.lines = 0;
+      this.canHold = true;
+      this.heldPieceIdx = null;
+      this.lastTime = 0;
+      this.dropAccumulator = 0;
+
+      try {
+        this.bestScore = parseInt(localStorage.getItem('tetris_best_score')) || 0;
+      } catch (e) {
+        this.bestScore = 0;
+      }
+
+      Board.init();
+      this.nextPieceIdx = this.randomIdx();
+      this.spawnPiece();
+
+      if (this.state !== 'gameover') {
+        this.state = 'playing';
+        if (this.animId) cancelAnimationFrame(this.animId);
+        this.animId = requestAnimationFrame(ts => this.loop(ts));
+      }
+    },
+
+    spawnPiece() {
+      Piece.spawn(this.nextPieceIdx);
+      this.nextPieceIdx = this.randomIdx();
+      this.canHold = true;
+
+      // 스폰 위치 즉시 충돌 → 게임오버
+      if (!Board.isValid(Piece.shape, Piece.x, Piece.y)) {
+        this.gameOver();
+      }
+    },
+
+    loop(ts) {
+      if (this.state !== 'playing') return;
+
+      const delta = this.lastTime ? ts - this.lastTime : 0;
+      this.lastTime = ts;
+      this.dropAccumulator += delta;
+
+      if (this.dropAccumulator >= this.getDropInterval()) {
+        this.dropAccumulator = 0;
+        if (!Piece.move(0, 1)) this.lockPiece();
+      }
+
+      Renderer.draw();
+      this.animId = requestAnimationFrame(ts => this.loop(ts));
+    },
+
+    lockPiece() {
+      Board.place(Piece.shape, Piece.x, Piece.y, Piece.color);
+      const cleared = Board.clearLines();
+      if (cleared > 0) this.addLineScore(cleared);
+      this.spawnPiece();
+    },
+
+    // 줄 클리어 점수 + 레벨업
+    addLineScore(cleared) {
+      const pts = [0, 100, 300, 500, 800];
+      this.score += pts[cleared] * this.level;
+      this.lines += cleared;
+      this.level = Math.floor(this.lines / 10) + 1;
+    },
+
+    softDrop() {
+      if (Piece.move(0, 1)) {
+        this.score += 1;
+        this.dropAccumulator = 0;
+      }
+    },
+
+    hardDrop() {
+      let count = 0;
+      while (Piece.move(0, 1)) count++;
+      this.score += count * 2;
+      this.lockPiece();
+      this.dropAccumulator = 0;
+    },
+
+    hold() {
+      if (!this.canHold) return;
+      this.canHold = false;
+
+      if (this.heldPieceIdx === null) {
+        // 처음 홀드: 현재 피스 저장 후 새 피스 스폰
+        this.heldPieceIdx = Piece.pieceIdx;
+        this.spawnPiece();
+      } else {
+        // 교체: 홀드 슬롯 ↔ 현재 피스
+        const temp = this.heldPieceIdx;
+        this.heldPieceIdx = Piece.pieceIdx;
+        Piece.spawn(temp);
+      }
+    },
+
+    gameOver() {
+      this.state = 'gameover';
+      try {
+        if (this.score > this.bestScore) {
+          this.bestScore = this.score;
+          localStorage.setItem('tetris_best_score', String(this.bestScore));
+        }
+      } catch (e) { /* localStorage 미지원 */ }
+      Renderer.draw();
+    },
+
+    pause() {
+      if (this.state === 'playing') {
+        this.state = 'paused';
+        Renderer.draw();
+      } else if (this.state === 'paused') {
+        this.state = 'playing';
+        this.lastTime = 0;
+        this.animId = requestAnimationFrame(ts => this.loop(ts));
+      }
+    },
+  };
 
   // ===== INPUT + INIT =====
   </script>
