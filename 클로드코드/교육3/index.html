@@ -188,6 +188,47 @@
   };
 
   // ===== PIECE =====
+  const Piece = {
+    shape: null,
+    color: null,
+    pieceIdx: -1,
+    x: 0,
+    y: 0,
+
+    // idx: PIECES 배열 인덱스
+    spawn(idx) {
+      this.pieceIdx = idx;
+      this.shape = PIECES[idx].shape.map(row => [...row]);
+      this.color = PIECES[idx].color;
+      this.x = Math.floor((Board.COLS - this.shape[0].length) / 2);
+      this.y = 0;
+    },
+
+    // 시계방향 90도 회전 (충돌 시 취소)
+    rotate() {
+      const newShape = rotate(this.shape);
+      if (Board.isValid(newShape, this.x, this.y)) {
+        this.shape = newShape;
+      }
+    },
+
+    // dx/dy 방향으로 1칸 이동, 성공 시 true 반환
+    move(dx, dy) {
+      if (Board.isValid(this.shape, this.x + dx, this.y + dy)) {
+        this.x += dx;
+        this.y += dy;
+        return true;
+      }
+      return false;
+    },
+
+    // 하드 드롭 위치 Y 좌표 계산
+    getGhostY() {
+      let gy = this.y;
+      while (Board.isValid(this.shape, this.x, gy + 1)) gy++;
+      return gy;
+    },
+  };
 
   // ===== RENDERER =====
 
